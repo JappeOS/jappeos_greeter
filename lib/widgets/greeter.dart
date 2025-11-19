@@ -1,19 +1,19 @@
 import 'dart:async';
 
 import 'package:intl/intl.dart';
+import 'package:jappeos_greeter/provider/greeter_provider.dart';
+import 'package:jappeos_greeter/widgets/create_initial_user_prompt.dart';
+import 'package:jappeos_services/jappeos_services.dart';
+import 'package:provider/provider.dart';
 import 'package:shade_ui/shade_ui.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 
 import 'greeter_action_buttons.dart';
 
-typedef LoginError = String;
 typedef UserList = List<String>;
 
 class Greeter extends StatefulWidget {
-  final UserList usersList;
-  final LoginError? Function(String username, String password) onLogin;
-
-  const Greeter({super.key, required this.usersList, required this.onLogin});
+  const Greeter({super.key});
 
   @override
   State<Greeter> createState() => _GreeterState();
@@ -27,7 +27,8 @@ class _GreeterState extends State<Greeter> {
   bool _initialBaseBuild = true;
   String _selectedUser = "";
   String _currentPassword = "";
-  LoginError? _currentLoginError;
+  String? _currentLoginError;
+  bool _isLoggingIn = false;
 
   @override
   void initState() {
@@ -39,14 +40,16 @@ class _GreeterState extends State<Greeter> {
   void _updateTime() {
     final now = DateTime.now();
     final formattedTime = DateFormat('HH:mm').format(now);
-    setState(() {
-      _timeString = formattedTime;
-    });
+    if (_currentPage == _Page.main) setState(() => _timeString = formattedTime);
   }
 
   void _beginBackToMainPageTimer() {
     _backToMainPageTimer?.cancel();
-    _backToMainPageTimer = Timer(const Duration(seconds: 15), () => setState(() => _currentPage = _Page.main));
+    _backToMainPageTimer = Timer(const Duration(seconds: 30), () => setState(() => _currentPage = _Page.main));
+  }
+
+  Future<void> _onLogin(String username, String password) async {
+    await context.read<GreeterProvider>().login(context.read<SessionManagerService>(), username, password);
   }
 
   @override
@@ -82,7 +85,7 @@ class _GreeterState extends State<Greeter> {
     ],
   );
 
-  Widget _buildUsersList() => GreeterActionButtons(
+  Widget _buildUsersList(List<String> usersList) => GreeterActionButtons(
     key: const ValueKey('users-list'),
     onPopoverOpened: () => _backToMainPageTimer?.cancel(),
     onPopoverClosed: () => _beginBackToMainPageTimer(),
@@ -91,17 +94,17 @@ class _GreeterState extends State<Greeter> {
         width: 250,
         child: ListView.builder(
           shrinkWrap: true,
-          itemCount: widget.usersList.length,
+          itemCount: usersList.length,
           itemBuilder: (context, index) => Padding(
             padding: EdgeInsets.only(left: 4 * Theme.of(context).scaling, right: 4 * Theme.of(context).scaling, bottom: 4 * Theme.of(context).scaling),
             child: GhostButton(
               leading: const Icon(Icons.account_circle_rounded),
               onPressed: () => setState(() {
                 _currentPage = _Page.user;
-                _selectedUser = widget.usersList[index];
+                _selectedUser = usersList[index];
                 _beginBackToMainPageTimer();
               }),
-              child: Text(widget.usersList[index]),
+              child: Text(usersList[index]),
             ),
           ),
         ),
@@ -128,7 +131,7 @@ class _GreeterState extends State<Greeter> {
         SizedBox(height: 8 * Theme.of(context).scaling),
         SizedBox(
           width: 250,
-          child: TextField( // TODO: Error text
+          child: TextField( // TODO: Error text and password visibility toggle
             /*decoration: InputDecoration(
               hintText: "Password",
               errorText: _currentLoginError,
@@ -145,9 +148,33 @@ class _GreeterState extends State<Greeter> {
               _currentPassword = str;
               _beginBackToMainPageTimer();
             },
-            onSubmitted: (p0) {
+            onSubmitted: (p0) async {
               _currentPassword = p0;
-              _currentLoginError = widget.onLogin(_selectedUser, _currentPassword);
+              _backToMainPageTimer?.cancel();
+              setState(() => _isLoggingIn = true);
+              try {
+                await _onLogin(_selectedUser, _currentPassword);
+              } catch (e) {
+                if (!context.mounted) return;
+                _currentLoginError = e.toString();
+                showDialog(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text('Login Error'),
+                    content: Text(e.toString()),
+                    actions: [
+                      PrimaryButton(
+                        onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  ),
+                );
+              } finally {
+                if (!mounted) return;
+                _beginBackToMainPageTimer();
+                setState(() => _isLoggingIn = false);
+              }
             },
           ),
         )
@@ -159,23 +186,27 @@ class _GreeterState extends State<Greeter> {
   Widget build(BuildContext context) {
     if (_currentPage == _Page.user) _currentLoginError = null;
 
-    return TapRegion(
-      behavior: HitTestBehavior.opaque,
-      onTapInside: (_) {
-        if (_currentPage == _Page.main) {
-          setState(() {
-            _currentPage = _Page.list;
-            _beginBackToMainPageTimer();
-          });
-        }
-      },
-      child: SurfaceBlur(
-        surfaceBlur: Theme.of(context).surfaceBlur,
-        child: _buildBase(switch (_currentPage) {
-          _Page.main => _buildMainPage(),
-          _Page.list => _buildUsersList(),
-          _Page.user => _buildUserPage(),
-        }),
+    final greeterProvider = context.watch<GreeterProvider>();
+
+    return GreeterCreateInitialUserGate(
+      child: TapRegion(
+        behavior: HitTestBehavior.opaque,
+        onTapInside: (_) {
+          if (_currentPage == _Page.main) {
+            setState(() {
+              _currentPage = _Page.list;
+              _beginBackToMainPageTimer();
+            });
+          }
+        },
+        child: SurfaceBlur(
+          surfaceBlur: Theme.of(context).surfaceBlur,
+          child: _buildBase(switch (_currentPage) {
+            _Page.main => _buildMainPage(),
+            _Page.list => _buildUsersList(greeterProvider.usersList.values.toList()..sort((a, b) => a.toString().toLowerCase().compareTo(b.toString().toLowerCase()))), // TODO: Cache sorted list and update only on changes
+            _Page.user => _buildUserPage(),
+          }),
+        ),
       ),
     );
   }

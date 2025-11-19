@@ -1,3 +1,4 @@
+import 'package:jappeos_services/jappeos_services.dart';
 import 'package:shade_ui/shade_ui.dart';
 
 import 'greeter.dart';
@@ -13,7 +14,7 @@ class App extends StatelessWidget {
         colorScheme: ColorSchemes.darkViolet,
         radius: 0.5,
       ),
-      home: Greeter(usersList: const [ "Joe", "Mama" ], onLogin: (p0, p1) { /*TODO: login*/ return null;}),
+      home: JappeosServiceProvider(child: Greeter()),
     );
   }
 }

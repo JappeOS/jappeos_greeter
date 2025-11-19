@@ -1,3 +1,5 @@
+import 'package:jappeos_services/jappeos_services.dart';
+import 'package:provider/provider.dart';
 import 'package:shade_ui/shade_ui.dart';
 
 class GreeterActionButtons extends StatefulWidget {
@@ -16,7 +18,6 @@ class _GreeterActionButtonsState extends State<GreeterActionButtons> {
   int _openPopoversPrev = 0;
 
   void _openPopover(bool open) {
-    print(open ? "open" : "close");
     if (open) _openPopovers++;
     else _openPopovers--;
 
@@ -33,6 +34,7 @@ class _GreeterActionButtonsState extends State<GreeterActionButtons> {
 
   @override
   Widget build(BuildContext context) {
+    final powerManager = context.read<PowerManagerService>();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisAlignment: MainAxisAlignment.start,
@@ -68,6 +70,9 @@ class _GreeterActionButtonsState extends State<GreeterActionButtons> {
                 child: _GreeterPowerButton(
                   onPopoverOpened: () => _openPopover(true),
                   onPopoverClosed: () => _openPopover(false),
+                  onPowerOff: () async => await powerManager.shutdown(),
+                  onRestart: () async => await powerManager.reboot(),
+                  onSuspend: () async => await powerManager.suspend(),
                 ),
               ),
             ],
@@ -125,11 +130,12 @@ class _GreeterVolumeButton extends StatelessWidget {
 
 class _GreeterPowerButton extends StatelessWidget {
   final void Function()? onSuspend;
+  final void Function()? onRestart;
   final void Function()? onPowerOff;
   final void Function()? onPopoverOpened;
   final void Function()? onPopoverClosed;
 
-  const _GreeterPowerButton({super.key, this.onSuspend, this.onPowerOff, this.onPopoverOpened, this.onPopoverClosed});
+  const _GreeterPowerButton({super.key, this.onSuspend, this.onRestart, this.onPowerOff, this.onPopoverOpened, this.onPopoverClosed});
 
   @override
   Widget build(BuildContext context) {
@@ -143,11 +149,15 @@ class _GreeterPowerButton extends StatelessWidget {
             return DropdownMenu(
               children: [
                 MenuButton(
-                  onPressed: (_) => onSuspend,
+                  onPressed: (_) => onSuspend?.call(),
                   child: Text('Suspend'),
                 ),
                 MenuButton(
-                  onPressed: (_) => onPowerOff,
+                  onPressed: (_) => onRestart?.call(),
+                  child: Text('Restart'),
+                ),
+                MenuButton(
+                  onPressed: (_) => onPowerOff?.call(),
                   child: Text('Power Off'),
                 ),
               ],
