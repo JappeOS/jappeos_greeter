@@ -1,6 +1,8 @@
 import 'package:jappeos_services/jappeos_services.dart';
+import 'package:provider/provider.dart';
 import 'package:shade_ui/shade_ui.dart';
 
+import '../provider/greeter_provider.dart';
 import 'greeter.dart';
 
 class App extends StatelessWidget {
@@ -14,7 +16,10 @@ class App extends StatelessWidget {
         colorScheme: ColorSchemes.darkViolet,
         radius: 0.5,
       ),
-      home: JappeosServiceProvider(child: Greeter()),
+      home: Provider(
+        create: (_) => GreeterProvider(),
+        child: JappeosServiceProvider(child: Greeter()),
+      ),
     );
   }
 }
