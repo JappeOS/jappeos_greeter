@@ -20,7 +20,9 @@ class Greeter extends StatefulWidget {
 }
 
 class _GreeterState extends State<Greeter> {
+  late Future<void> _initializationFuture;
   String _timeString = '';
+  String _dateString = '';
   Timer? _timer;
   Timer? _backToMainPageTimer;
   _Page _currentPage = _Page.main;
@@ -33,6 +35,7 @@ class _GreeterState extends State<Greeter> {
   @override
   void initState() {
     super.initState();
+    _initializationFuture = context.read<GreeterProvider>().initialize(context.read<AccountManagerService>()); // TODO: Error handling
     _updateTime();
     _timer = Timer.periodic(const Duration(minutes: 1), (Timer t) => _updateTime());
   }
@@ -40,7 +43,13 @@ class _GreeterState extends State<Greeter> {
   void _updateTime() {
     final now = DateTime.now();
     final formattedTime = DateFormat('HH:mm').format(now);
-    if (_currentPage == _Page.main) setState(() => _timeString = formattedTime);
+    final formattedDate = DateFormat('EEEE, MMMM d').format(now);
+    if (_currentPage == _Page.main) {
+      setState(() {
+        _timeString = formattedTime;
+        _dateString = formattedDate;
+      });
+    }
   }
 
   void _beginBackToMainPageTimer() {
@@ -71,17 +80,23 @@ class _GreeterState extends State<Greeter> {
 
   Widget _buildMainPage() => Column(
     key: const ValueKey('main-page'),
-    mainAxisAlignment: MainAxisAlignment.center,
     crossAxisAlignment: CrossAxisAlignment.center,
     spacing: 16 * Theme.of(context).scaling,
     children: [
+      Gap(16 * Theme.of(context).scaling),
+      Spacer(),
       Text(
         _timeString,
       ).x8Large(),
+      Text(
+        _dateString,
+      ).x4Large(),
+      Spacer(),
       TextAnimator(
         "Press any key to unlock.",
         atRestEffect: WidgetRestingEffects.wave(),
       ),
+      Gap(16 * Theme.of(context).scaling),
     ],
   );
 
@@ -155,7 +170,7 @@ class _GreeterState extends State<Greeter> {
               try {
                 await _onLogin(_selectedUser, _currentPassword);
               } catch (e) {
-                if (!context.mounted) return;
+                if (!mounted) return;
                 _currentLoginError = e.toString();
                 showDialog(
                   context: context,
@@ -188,26 +203,32 @@ class _GreeterState extends State<Greeter> {
 
     final greeterProvider = context.watch<GreeterProvider>();
 
-    return GreeterCreateInitialUserGate(
-      child: TapRegion(
-        behavior: HitTestBehavior.opaque,
-        onTapInside: (_) {
-          if (_currentPage == _Page.main) {
-            setState(() {
-              _currentPage = _Page.list;
-              _beginBackToMainPageTimer();
-            });
-          }
-        },
-        child: SurfaceBlur(
-          surfaceBlur: Theme.of(context).surfaceBlur,
-          child: _buildBase(switch (_currentPage) {
-            _Page.main => _buildMainPage(),
-            _Page.list => _buildUsersList(greeterProvider.usersList.values.toList()..sort((a, b) => a.toString().toLowerCase().compareTo(b.toString().toLowerCase()))), // TODO: Cache sorted list and update only on changes
-            _Page.user => _buildUserPage(),
-          }),
-        ),
-      ),
+    return FutureBuilder<void>(
+      future: _initializationFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) return const SizedBox.shrink();
+        return GreeterCreateInitialUserGate(
+          child: TapRegion(
+            behavior: HitTestBehavior.opaque,
+            onTapInside: (_) {
+              if (_currentPage == _Page.main) {
+                setState(() {
+                  _currentPage = _Page.list;
+                  _beginBackToMainPageTimer();
+                });
+              }
+            },
+            child: SurfaceBlur(
+              surfaceBlur: Theme.of(context).surfaceBlur,
+              child: _buildBase(switch (_currentPage) {
+                _Page.main => _buildMainPage(),
+                _Page.list => _buildUsersList(greeterProvider.usersList.values.toList()..sort((a, b) => a.toString().toLowerCase().compareTo(b.toString().toLowerCase()))), // TODO: Cache sorted list and update only on changes
+                _Page.user => _buildUserPage(),
+              }),
+            ),
+          ),
+        );
+      },
     );
   }
 }
