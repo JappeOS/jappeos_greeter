@@ -2,7 +2,7 @@ import 'package:jappeos_services/jappeos_services.dart';
 import 'package:shade_ui/shade_ui.dart';
 
 class GreeterProvider extends ChangeNotifier {
-  Map<String, String> _usersMap = {};
+  final Map<String, String> _usersMap = {};
   Map<String, String> get usersList => Map.unmodifiable(_usersMap);
   bool _isInitialized = false;
   bool _isLoggingIn = false;

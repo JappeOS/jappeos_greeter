@@ -84,7 +84,7 @@ class _GreeterCreateInitialUserPromptState extends State<_GreeterCreateInitialUs
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-              'This system does not have a user yet. Create a user profile below.'),
+              'This system does not have a user yet. Please create a user profile below.'),
           const Gap(16),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
@@ -126,6 +126,7 @@ class _GreeterCreateInitialUserPromptState extends State<_GreeterCreateInitialUs
                 builder: (_) => errorDialog(e.toString()),
               );
             } finally {
+              if (!context.mounted) return;
               setState(() => _isCreating = false);
             }
           } : null,
