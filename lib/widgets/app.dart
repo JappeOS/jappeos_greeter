@@ -16,7 +16,7 @@ class App extends StatelessWidget {
         colorScheme: ColorSchemes.darkViolet,
         radius: 0.5,
       ),
-      home: Provider(
+      home: ChangeNotifierProvider<GreeterProvider>(
         create: (_) => GreeterProvider(),
         child: JappeosServiceProvider(child: Greeter()),
       ),
