@@ -24,6 +24,7 @@ dependencies:
       ref: dev
   widget_and_text_animator: ^1.1.5
   provider: ^6.1.5+1
+  crypt: ^4.3.1
 
 dev_dependencies:
   flutter_test:

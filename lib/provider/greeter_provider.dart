@@ -1,3 +1,4 @@
+import 'package:crypt/crypt.dart';
 import 'package:jappeos_services/jappeos_services.dart';
 import 'package:shade_ui/shade_ui.dart';
 
@@ -33,7 +34,7 @@ class GreeterProvider extends ChangeNotifier {
     }
 
     // TODO: Crypt password
-    await service.createInitialUserWithPassword(realName.toLowerCase().trim().replaceAll(" ", "_"), realName, password);
+    await service.createInitialUserWithPassword(realName.toLowerCase().trim().replaceAll(" ", "_"), realName, _cryptPassword(password));
 
     // If successful, update state
     _shouldShowInitialUserCreationDialog = false;
@@ -58,7 +59,7 @@ class GreeterProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await service.createSession(username, password);
+      await service.createSession(username, _cryptPassword(password));
     } finally {
       _isLoggingIn = false;
       notifyListeners();
@@ -77,5 +78,9 @@ class GreeterProvider extends ChangeNotifier {
         // Ignore users we can't get the name of
       }
     }
+  }
+
+  String _cryptPassword(String password) {
+    return Crypt.sha512(password, rounds: 5000).toString();
   }
 }
