@@ -1,4 +1,5 @@
 import 'package:crypt/crypt.dart';
+import 'package:jappeos_greeter/provider/debug_ui_provider.dart';
 import 'package:jappeos_services/jappeos_services.dart';
 import 'package:shade_ui/shade_ui.dart';
 
@@ -20,7 +21,7 @@ class GreeterProvider extends ChangeNotifier {
     _isInitialized = true;
   }
 
-  Future<void> createInitialUser(AccountManagerService service, String realName, String password) async {
+  Future<void> createInitialUser(DebugUiProvider dbg, AccountManagerService service, String realName, String password) async {
     if (!_isInitialized) {
       throw StateError("GreeterProvider must be initialized before creating an initial user.");
     }
@@ -33,7 +34,6 @@ class GreeterProvider extends ChangeNotifier {
       throw ArgumentError("Password cannot be empty.");
     }
 
-    // TODO: Crypt password
     await service.createInitialUserWithPassword(realName.toLowerCase().trim().replaceAll(" ", "_"), realName, _cryptPassword(password));
 
     // If successful, update state
@@ -59,7 +59,7 @@ class GreeterProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await service.createSession(username, _cryptPassword(password));
+      await service.createSession(username, /*_cryptPassword(*/password/*)*/);
     } finally {
       _isLoggingIn = false;
       notifyListeners();
@@ -67,8 +67,16 @@ class GreeterProvider extends ChangeNotifier {
   }
 
   Future<void> _refreshUsersList(AccountManagerService service) async {
-    var users = await service.listUsers();
     _usersMap.clear();
+
+    List<String> users;
+    try {
+      users = await service.listUsers();
+    } catch (e) {
+      _usersMap.clear();
+      return;
+    }
+
     for (final user in users) {
       try {
         final name = await service.getUserProperty(user, "UserName");     // actual username
