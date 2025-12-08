@@ -3,6 +3,8 @@ import 'package:jappeos_services/jappeos_services.dart';
 import 'package:provider/provider.dart';
 import 'package:shade_ui/shade_ui.dart';
 
+import '../provider/debug_ui_provider.dart';
+
 class GreeterCreateInitialUserGate extends StatefulWidget {
   final Widget child;
 
@@ -13,33 +15,27 @@ class GreeterCreateInitialUserGate extends StatefulWidget {
 }
 
 class _GreeterCreateInitialUserGateState extends State<GreeterCreateInitialUserGate> {
-  bool _dialogShown = false;
-
   @override
   void initState() {
     super.initState();
-  }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final shouldShowDialog = context.watch<GreeterProvider>().shouldShowInitialUserCreationDialog;
-
-    if (shouldShowDialog && !_dialogShown) {
-      _dialogShown = true;
-
+    final greeterProvider = context.read<GreeterProvider>();
+    final shouldShowDialog = greeterProvider.shouldShowInitialUserCreationDialog;
+    if (shouldShowDialog) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (_) => _GreeterCreateInitialUserPrompt(
-            onCreated: (username, password) async => await context.read<GreeterProvider>().createInitialUser(context.read<AccountManagerService>(), username, password),
+            onCreated: (username, password) async => await greeterProvider.createInitialUser(
+              context.read<DebugUiProvider>(),
+              context.read<AccountManagerService>(),
+              username,
+              password,
+            ),
           ),
         );
       });
-    } else if (shouldShowDialog && _dialogShown) {
-      _dialogShown = false;
-      Navigator.of(context, rootNavigator: true).pop();
     }
   }
 
@@ -59,7 +55,7 @@ class _GreeterCreateInitialUserPrompt extends StatefulWidget {
 }
 
 class _GreeterCreateInitialUserPromptState extends State<_GreeterCreateInitialUserPrompt> {
-  final FormController controller = FormController();
+  final FormController _controller = FormController();
   bool _isCreating = false;
 
   @override
@@ -89,7 +85,7 @@ class _GreeterCreateInitialUserPromptState extends State<_GreeterCreateInitialUs
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
             child: Form(
-              controller: controller,
+              controller: _controller,
               child: FormTableLayout(rows: [
                 FormField<String>(
                   key: FormKey(#name),
@@ -115,10 +111,12 @@ class _GreeterCreateInitialUserPromptState extends State<_GreeterCreateInitialUs
       ),
       actions: [
         PrimaryButton(
-          onPressed: !_isCreating && widget.onCreated != null && controller.errors.isEmpty ? () async {
+          onPressed: !_isCreating && widget.onCreated != null && _controller.errors.isEmpty ? () async {
             setState(() => _isCreating = true);
             try {
-              await widget.onCreated!(controller.values[FormKey(#name)], controller.values[FormKey(#password)]);
+              await widget.onCreated!(_controller.values[FormKey(#name)], _controller.values[FormKey(#password)]);
+              if (!context.mounted) return;
+              Navigator.pop(context);
             } catch (e) {
               if (!context.mounted) return;
               showDialog(

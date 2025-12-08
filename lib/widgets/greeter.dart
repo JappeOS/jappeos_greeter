@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:intl/intl.dart';
 import 'package:jappeos_greeter/provider/greeter_provider.dart';
@@ -27,7 +28,8 @@ class _GreeterState extends State<Greeter> {
   Timer? _backToMainPageTimer;
   _Page _currentPage = _Page.main;
   bool _initialBaseBuild = true;
-  String _selectedUser = "";
+  String _selectedUserUsername = "";
+  String _selectedUserDisplayname = "";
   String _currentPassword = "";
   String? _currentLoginError;
   bool _isLoggingIn = false;
@@ -100,7 +102,7 @@ class _GreeterState extends State<Greeter> {
     ],
   );
 
-  Widget _buildUsersList(List<String> usersList) => GreeterActionButtons(
+  Widget _buildUsersList(SplayTreeMap<String, String> usersList) => GreeterActionButtons(
     key: const ValueKey('users-list'),
     onPopoverOpened: () => _backToMainPageTimer?.cancel(),
     onPopoverClosed: () => _beginBackToMainPageTimer(),
@@ -110,18 +112,22 @@ class _GreeterState extends State<Greeter> {
         child: ListView.builder(
           shrinkWrap: true,
           itemCount: usersList.length,
-          itemBuilder: (context, index) => Padding(
-            padding: EdgeInsets.only(left: 4 * Theme.of(context).scaling, right: 4 * Theme.of(context).scaling, bottom: 4 * Theme.of(context).scaling),
-            child: GhostButton(
-              leading: const Icon(Icons.account_circle_rounded),
-              onPressed: () => setState(() {
-                _currentPage = _Page.user;
-                _selectedUser = usersList[index];
-                _beginBackToMainPageTimer();
-              }),
-              child: Text(usersList[index]),
-            ),
-          ),
+          itemBuilder: (context, index) {
+            final entry = usersList.entries.elementAt(index);
+            return  Padding(
+              padding: EdgeInsets.only(left: 4 * Theme.of(context).scaling, right: 4 * Theme.of(context).scaling, bottom: 4 * Theme.of(context).scaling),
+              child: GhostButton(
+                leading: const Icon(Icons.account_circle_rounded),
+                onPressed: () => setState(() {
+                  _currentPage = _Page.user;
+                  _selectedUserUsername = entry.key;
+                  _selectedUserDisplayname = entry.value;
+                  _beginBackToMainPageTimer();
+                }),
+                child: Text(entry.value),
+              ),
+            );
+          },
         ),
       ),
     ),
@@ -141,7 +147,7 @@ class _GreeterState extends State<Greeter> {
         ),
         SizedBox(height: 4 * Theme.of(context).scaling),
         Text(
-          _selectedUser,
+          _selectedUserDisplayname,
         ).h3(),
         SizedBox(height: 8 * Theme.of(context).scaling),
         SizedBox(
@@ -168,7 +174,7 @@ class _GreeterState extends State<Greeter> {
               _backToMainPageTimer?.cancel();
               setState(() => _isLoggingIn = true);
               try {
-                await _onLogin(_selectedUser, _currentPassword);
+                await _onLogin(_selectedUserUsername, _currentPassword);
               } catch (e) {
                 if (!mounted) return;
                 _currentLoginError = e.toString();
@@ -202,6 +208,7 @@ class _GreeterState extends State<Greeter> {
     if (_currentPage == _Page.user) _currentLoginError = null;
 
     final greeterProvider = context.watch<GreeterProvider>();
+    final sortedUsersMap = SplayTreeMap<String, String>()..addAll(greeterProvider.usersList); // TODO: Cache sorted list and update only on changes
 
     return FutureBuilder<void>(
       future: _initializationFuture,
@@ -222,7 +229,7 @@ class _GreeterState extends State<Greeter> {
               surfaceBlur: Theme.of(context).surfaceBlur,
               child: _buildBase(switch (_currentPage) {
                 _Page.main => _buildMainPage(),
-                _Page.list => _buildUsersList(greeterProvider.usersList.values.toList()..sort((a, b) => a.toString().toLowerCase().compareTo(b.toString().toLowerCase()))), // TODO: Cache sorted list and update only on changes
+                _Page.list => _buildUsersList(sortedUsersMap),
                 _Page.user => _buildUserPage(),
               }),
             ),
