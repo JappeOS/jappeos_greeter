@@ -1,7 +1,7 @@
 import 'package:crypt/crypt.dart';
 import 'package:jappeos_greeter/provider/debug_ui_provider.dart';
 import 'package:jappeos_services/jappeos_services.dart';
-import 'package:shade_ui/shade_ui.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 class GreeterProvider extends ChangeNotifier {
   final Map<String, String> _usersMap = {};

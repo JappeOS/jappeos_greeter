@@ -1,6 +1,6 @@
 import 'package:jappeos_services/jappeos_services.dart';
 import 'package:provider/provider.dart';
-import 'package:shade_ui/shade_ui.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 class GreeterActionButtons extends StatefulWidget {
   final void Function()? onPopoverOpened;

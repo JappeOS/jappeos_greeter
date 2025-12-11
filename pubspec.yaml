@@ -14,9 +14,9 @@ dependencies:
     sdk: flutter
 
   intl: ^0.20.2
-  shade_ui:
+  shadcn_flutter:
     git:
-      url: https://github.com/JappeOS/shade_ui.git
+      url: https://github.com/JappeOS/shadcn_flutter.git
       ref: master
   jappeos_services:
     git:

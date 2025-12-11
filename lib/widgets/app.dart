@@ -1,7 +1,7 @@
 import 'package:jappeos_greeter/provider/debug_ui_provider.dart';
 import 'package:jappeos_services/jappeos_services.dart';
 import 'package:provider/provider.dart';
-import 'package:shade_ui/shade_ui.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../provider/greeter_provider.dart';
 import 'debug_ui_gate.dart';

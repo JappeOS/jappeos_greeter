@@ -8,7 +8,7 @@ import 'package:jappeos_greeter/provider/greeter_provider.dart';
 import 'package:jappeos_greeter/widgets/create_initial_user_prompt.dart';
 import 'package:jappeos_services/jappeos_services.dart';
 import 'package:provider/provider.dart';
-import 'package:shade_ui/shade_ui.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 
 import 'greeter_action_buttons.dart';

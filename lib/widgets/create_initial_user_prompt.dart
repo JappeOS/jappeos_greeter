@@ -1,7 +1,7 @@
 import 'package:jappeos_greeter/provider/greeter_provider.dart';
 import 'package:jappeos_services/jappeos_services.dart';
 import 'package:provider/provider.dart';
-import 'package:shade_ui/shade_ui.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../provider/debug_ui_provider.dart';
 
@@ -114,7 +114,7 @@ class _GreeterCreateInitialUserPromptState extends State<_GreeterCreateInitialUs
           onPressed: !_isCreating && widget.onCreated != null && _controller.errors.isEmpty ? () async {
             setState(() => _isCreating = true);
             try {
-              await widget.onCreated!(_controller.values[FormKey(#name)], _controller.values[FormKey(#password)]);
+              await widget.onCreated!(_controller.values[FormKey(#name)] as String, _controller.values[FormKey(#password)] as String);
               if (!context.mounted) return;
               Navigator.pop(context);
             } catch (e) {
