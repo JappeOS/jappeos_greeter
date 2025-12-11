@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:io';
+import 'dart:math';
 
 import 'package:intl/intl.dart';
 import 'package:jappeos_greeter/provider/greeter_provider.dart';
@@ -21,7 +23,10 @@ class Greeter extends StatefulWidget {
 }
 
 class _GreeterState extends State<Greeter> {
+  static const String kBackgroundsPath = "/usr/share/backgrounds/";
+
   late Future<void> _initializationFuture;
+  File? _backgroundImageFile;
   String _timeString = '';
   String _dateString = '';
   Timer? _timer;
@@ -40,6 +45,7 @@ class _GreeterState extends State<Greeter> {
     _initializationFuture = context.read<GreeterProvider>().initialize(context.read<AccountManagerService>()); // TODO: Error handling
     _updateTime();
     _timer = Timer.periodic(const Duration(minutes: 1), (Timer t) => _updateTime());
+    _loadWallpaper();
   }
 
   void _updateTime() {
@@ -61,6 +67,42 @@ class _GreeterState extends State<Greeter> {
 
   Future<void> _onLogin(String username, String password) async {
     await context.read<GreeterProvider>().login(context.read<SessionManagerService>(), username, password);
+  }
+
+  void _loadWallpaper() async {
+    bool isSupportedImage(String path) {
+      final lower = path.toLowerCase();
+      return lower.endsWith(".jpg") ||
+          lower.endsWith(".jpeg") ||
+          lower.endsWith(".png");
+    }
+
+    final dir = Directory(kBackgroundsPath);
+
+    if (!await dir.exists()) {
+      print("Background directory does not exist: $kBackgroundsPath");
+      return;
+    }
+
+    // List image files
+    final files = await dir
+        .list()
+        .where((entity) =>
+            entity is File &&
+            isSupportedImage(entity.path))
+        .map((entity) => File(entity.path))
+        .toList();
+
+    if (files.isEmpty) {
+      print("No supported images found.");
+      return;
+    }
+
+    // Pick random
+    final random = Random();
+    _backgroundImageFile = files[random.nextInt(files.length)];
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => setState(() {}));
   }
 
   @override
@@ -89,14 +131,41 @@ class _GreeterState extends State<Greeter> {
       Spacer(),
       Text(
         _timeString,
+        style: TextStyle(
+          shadows: [
+            Shadow(
+              color: Colors.black.withValues(alpha: 0.6),
+              offset: const Offset(2, 2),
+              blurRadius: 4,
+            ),
+          ],
+        ),
       ).x8Large(),
       Text(
         _dateString,
-      ).x4Large(),
+        style: TextStyle(
+          shadows: [
+            Shadow(
+              color: Colors.black.withValues(alpha: 0.6),
+              offset: const Offset(2, 2),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+      ).x3Large(),
       Spacer(),
       TextAnimator(
         "Press any key to unlock.",
         atRestEffect: WidgetRestingEffects.wave(),
+        style: TextStyle(
+          shadows: [
+            Shadow(
+              color: Colors.black.withValues(alpha: 0.6),
+              offset: const Offset(2, 2),
+              blurRadius: 3,
+            ),
+          ],
+        ),
       ),
       Gap(16 * Theme.of(context).scaling),
     ],
@@ -210,6 +279,55 @@ class _GreeterState extends State<Greeter> {
     final greeterProvider = context.watch<GreeterProvider>();
     final sortedUsersMap = SplayTreeMap<String, String>()..addAll(greeterProvider.usersList); // TODO: Cache sorted list and update only on changes
 
+    Widget surfaceBlur() {
+      return TweenAnimationBuilder<double>(
+        duration: const Duration(milliseconds: 300),
+        tween: Tween<double>(
+          begin: 0,
+          end: _currentPage == _Page.main
+              ? 0
+              : Theme.of(context).surfaceBlur,
+        ),
+        builder: (context, animatedBlur, child) {
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+            decoration: BoxDecoration(
+              color: _currentPage == _Page.main
+                  ? Colors.transparent
+                  : Theme.of(context)
+                      .colorScheme
+                      .background
+                      .withValues(alpha: 0.8),
+            ),
+            child: SurfaceBlur(
+              surfaceBlur: animatedBlur,
+              child: child!,
+            ),
+          );
+        },
+        child: _buildBase(switch (_currentPage) {
+          _Page.main => _buildMainPage(),
+          _Page.list => _buildUsersList(sortedUsersMap),
+          _Page.user => _buildUserPage(),
+        }),
+      );
+    }
+
+    /*Widget surfaceBlur() => DecoratedBox(
+      decoration: BoxDecoration(
+        color: _currentPage == _Page.main ? Colors.transparent : Theme.of(context).colorScheme.background.withValues(alpha: 0.8),
+      ),
+      child: SurfaceBlur(
+        surfaceBlur: _currentPage == _Page.main ? 0 : Theme.of(context).surfaceBlur,
+        child: _buildBase(switch (_currentPage) {
+          _Page.main => _buildMainPage(),
+          _Page.list => _buildUsersList(sortedUsersMap),
+          _Page.user => _buildUserPage(),
+        }),
+      ),
+    );*/
+
     return FutureBuilder<void>(
       future: _initializationFuture,
       builder: (context, snapshot) {
@@ -225,14 +343,18 @@ class _GreeterState extends State<Greeter> {
                 });
               }
             },
-            child: SurfaceBlur(
-              surfaceBlur: Theme.of(context).surfaceBlur,
-              child: _buildBase(switch (_currentPage) {
-                _Page.main => _buildMainPage(),
-                _Page.list => _buildUsersList(sortedUsersMap),
-                _Page.user => _buildUserPage(),
-              }),
-            ),
+            child: _backgroundImageFile != null ? Stack(
+              fit: StackFit.expand,
+              children: [
+                Positioned.fill(
+                  child: Image.file(
+                    _backgroundImageFile!,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                Positioned.fill(child: surfaceBlur()),
+              ],
+            ) : surfaceBlur(),
           ),
         );
       },
