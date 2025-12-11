@@ -22,6 +22,7 @@ class App extends StatelessWidget {
             theme: ThemeData(
               colorScheme: ColorSchemes.darkViolet,
               radius: 0.5,
+              surfaceBlur: 10,
             ),
             home: DebugUiGate(child: Greeter()),
           ),
