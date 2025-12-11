@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:shade_ui/shade_ui.dart';
 
@@ -20,7 +21,7 @@ class _DebugUiGateState extends State<DebugUiGate> {
     return Stack(
       children: [
         Positioned.fill(child: widget.child),
-        if (logs.isNotEmpty)
+        if (logs.isNotEmpty && kDebugMode)
           Align(
             alignment: Alignment.bottomLeft,
             child: Container(
