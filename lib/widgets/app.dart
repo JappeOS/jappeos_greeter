@@ -21,8 +21,9 @@ class App extends StatelessWidget {
             title: 'JappeOS Greeter',
             theme: ThemeData(
               colorScheme: ColorSchemes.darkViolet,
-              radius: 0.5,
-              surfaceBlur: 10,
+              radius: 0.9,
+              surfaceOpacity: 0.85,
+              surfaceBlur: 9,
             ),
             home: DebugUiGate(child: Greeter()),
           ),
