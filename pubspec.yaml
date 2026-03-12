@@ -5,30 +5,31 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.9.2
+  sdk: ">=3.8.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
 
-  intl: ^0.20.2
   shadcn_flutter:
     git:
       url: https://github.com/JappeOS/shadcn_flutter.git
       ref: master
+
   jappeos_services:
     git:
       url: https://github.com/JappeOS/jappeos_services.git
       ref: dev
-  jdwm_flutter:
-    git:
-      url: https://github.com/JappeOS/JDWM.git
-      ref: main
-      path: jdwm_flutter
+
+  jdwm:
+    path: vendor/jdwm
+
   jappeos_desktop_base:
     git:
       url: https://github.com/JappeOS/jappeos_desktop_base.git
       ref: main
+
+  intl: ^0.20.2
   widget_and_text_animator: ^1.1.5
   provider: ^6.1.5+1
   crypt: ^4.3.1
@@ -38,6 +39,14 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^5.0.0
+
+dependency_overrides:
+  jdwm:
+    path: vendor/jdwm
+
+analyzer:
+  exclude:
+    - vendor/**
 
 flutter:
   uses-material-design: true

@@ -68,7 +68,7 @@ class _GreeterState extends State<Greeter> {
   }
 
   Future<void> _initialize() async {
-    final greeterProvider = context.read<DummyGreeterProvider>();
+    final greeterProvider = context.read<GreeterProvider>();
     final accountManager = context.read<AccountManagerService>();
     await greeterProvider.initialize(accountManager);
   }
@@ -139,12 +139,14 @@ class _GreeterState extends State<Greeter> {
   }
 
   Future<void> _handleLogin() async {
+    if (_isLoggingIn) return;
+
     _cancelInactivityTimer();
     setState(() => _isLoggingIn = true);
 
     try {
       final sessionManager = context.read<SessionManagerService>();
-      final greeterProvider = context.read<DummyGreeterProvider>();
+      final greeterProvider = context.read<GreeterProvider>();
       await greeterProvider.login(sessionManager, _selectedUsername, _passwordInput);
       _navigateToPage(GreeterPage.none);
     } catch (e) {
@@ -222,7 +224,7 @@ class _GreeterState extends State<Greeter> {
     return TapRegion(
       behavior: HitTestBehavior.opaque,
       onTapInside: (_) {
-        final greeterProvider = context.read<DummyGreeterProvider>();
+        final greeterProvider = context.read<GreeterProvider>();
         if (_currentPage == GreeterPage.main) {
           if (greeterProvider.usersList.length == 1) {
             final entry = greeterProvider.usersList.entries.first;
@@ -287,7 +289,7 @@ class _GreeterState extends State<Greeter> {
   }
 
   Widget _buildPageContent() {
-    final greeterProvider = context.watch<DummyGreeterProvider>();
+    final greeterProvider = context.watch<GreeterProvider>();
     final sortedUsers = SplayTreeMap<String, String>()
       ..addAll(greeterProvider.usersList);
 
@@ -445,7 +447,7 @@ class _UsersListPage extends StatelessWidget {
   }
 }
 
-class _UserLoginPage extends StatelessWidget {
+class _UserLoginPage extends StatefulWidget {
   final String displayName;
   final bool isLoggingIn;
   final ValueChanged<String> onPasswordChanged;
@@ -463,13 +465,32 @@ class _UserLoginPage extends StatelessWidget {
   });
 
   @override
+  State<_UserLoginPage> createState() => _UserLoginPageState();
+}
+
+class _UserLoginPageState extends State<_UserLoginPage> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scaling = Theme.of(context).scaling;
 
     return GreeterActionButtons(
       key: const ValueKey('user-page'),
-      onPopoverOpened: onPopoverOpened,
-      onPopoverClosed: onPopoverClosed,
+      onPopoverOpened: widget.onPopoverOpened,
+      onPopoverClosed: widget.onPopoverClosed,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -479,22 +500,43 @@ class _UserLoginPage extends StatelessWidget {
             size: 100,
           ),
           SizedBox(height: 4 * scaling),
-          Text(displayName).h3(),
+          Text(widget.displayName).h3(),
           SizedBox(height: 8 * scaling),
           SizedBox(
             width: 250,
             child: TextField(
+              controller: _controller,
+              features: !widget.isLoggingIn ? [
+                InputFeature.passwordToggle(
+                  visibility: InputFeatureVisibility.textNotEmpty,
+                  mode: PasswordPeekMode.hold,
+                ),
+                InputFeature.trailing(
+                  IconButton.text(
+                    icon: Icon(Icons.arrow_forward),
+                    onPressed: () => widget.onPasswordSubmitted(_controller.text),
+                    density: ButtonDensity.compact,
+                  ),
+                  visibility: InputFeatureVisibility.textNotEmpty,
+                ),
+              ] : [
+                InputFeature.trailing(
+                  const SizedBox.square(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              ],
               hintText: "Password",
               placeholder: const Text("Password"),
               textAlign: TextAlign.center,
-              enabled: !isLoggingIn,
+              enabled: !widget.isLoggingIn,
               obscureText: true,
               enableSuggestions: false,
               autocorrect: false,
               autofocus: true,
               filled: true,
-              onChanged: onPasswordChanged,
-              onSubmitted: onPasswordSubmitted,
+              onChanged: widget.onPasswordChanged,
+              onSubmitted: widget.onPasswordSubmitted,
             ),
           ),
         ],

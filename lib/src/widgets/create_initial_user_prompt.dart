@@ -39,7 +39,7 @@ class _GreeterCreateInitialUserGateState
   void initState() {
     super.initState();
 
-    final greeterProvider = context.read<DummyGreeterProvider>();
+    final greeterProvider = context.read<GreeterProvider>();
     final shouldShowDialog = greeterProvider.shouldShowInitialUserCreationDialog;
     if (shouldShowDialog) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

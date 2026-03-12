@@ -17,7 +17,7 @@
 import 'package:jappeos_desktop_base/jappeos_desktop_base.dart';
 import 'package:jappeos_greeter/src/provider/debug_ui_provider.dart';
 import 'package:jappeos_greeter/src/provider/greeter_provider.dart';
-import 'package:jdwm_flutter/jdwm_flutter.dart';
+import 'package:jdwm/jdwm.dart';
 import 'package:provider/provider.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
@@ -35,11 +35,11 @@ class _AppState extends State<App> {
   final GlobalKey<WindowManagerState> _wmControllerKey
       = GlobalKey<WindowManagerState>();
 
-  final List<MonitorConfig> _monitors = [
+  /*final List<MonitorConfig> _monitors = [
     const MonitorConfig(id: "a", bounds: Rect.fromLTWH(0,    0, 1920 / 2, 1080 / 2)),
     const MonitorConfig(id: "b", bounds: Rect.fromLTWH(1920 / 2, 0, 1920 / 2, 1080 / 2)),
     //const MonitorConfig(id: "c", bounds: Rect.fromLTWH(0,   540, 960, 540)),
-  ];
+  ];*/
 
   @override
   Widget build(BuildContext context) {
@@ -49,14 +49,13 @@ class _AppState extends State<App> {
       wmKey: _wmControllerKey,
       providers: [
         ListenableProvider<DebugUiProvider>(create: (_) => DebugUiProvider()),
-        ListenableProvider<DummyGreeterProvider>(create: (_) => DummyGreeterProvider()),
+        ListenableProvider<GreeterProvider>(create: (_) => GreeterProvider()),
       ],
       theme: _getTheme(false),
       darkTheme: _getTheme(true),
-      monitors: _monitors,
       monitorBuilder: (context, monitor) {
         final mobileMode = false;
-        if (_monitors.isEmpty || _monitors.first == monitor) {
+        if (monitor.isPrimary) {
           return OverlayManagerLayer(
             menuHandler:
                 (mobileMode
@@ -71,7 +70,9 @@ class _AppState extends State<App> {
                     ? const FixedTooltipOverlayHandler()
                     : const PopoverOverlayHandler()),
             child: Navigator(
-              onGenerateRoute: (settings) => PageRouteBuilder(pageBuilder: (context, animation, secondaryAnimation) => DebugUiGate(child: Greeter()))
+              onGenerateRoute: (settings) => PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) => DebugUiGate(child: Greeter())
+              ),
             ),
           );
         }
