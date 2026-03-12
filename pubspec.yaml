@@ -1,8 +1,6 @@
 name: jappeos_greeter
 description: "The login UI for JappeOS."
-# The following line prevents the package from being accidentally published to
-# pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: 'none'
 
 version: 1.0.0+1
 
@@ -22,6 +20,15 @@ dependencies:
     git:
       url: https://github.com/JappeOS/jappeos_services.git
       ref: dev
+  jdwm_flutter:
+    git:
+      url: https://github.com/JappeOS/JDWM.git
+      ref: main
+      path: jdwm_flutter
+  jappeos_desktop_base:
+    git:
+      url: https://github.com/JappeOS/jappeos_desktop_base.git
+      ref: main
   widget_and_text_animator: ^1.1.5
   provider: ^6.1.5+1
   crypt: ^4.3.1

@@ -1,4 +1,22 @@
-import 'package:jappeos_greeter/provider/greeter_provider.dart';
+//  jappeos_greeter, The login UI for JappeOS.
+//  Copyright (C) 2026  The JappeOS team.
+//
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU Affero General Public License as
+//  published by the Free Software Foundation, either version 3 of the
+//  License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU Affero General Public License for more details.
+//
+//  You should have received a copy of the GNU Affero General Public License
+//  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+// ignore_for_file: control_flow_in_finally
+
+import 'package:jappeos_greeter/src/provider/greeter_provider.dart';
 import 'package:jappeos_services/jappeos_services.dart';
 import 'package:provider/provider.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
@@ -11,28 +29,32 @@ class GreeterCreateInitialUserGate extends StatefulWidget {
   const GreeterCreateInitialUserGate({super.key, required this.child});
 
   @override
-  State<GreeterCreateInitialUserGate> createState() => _GreeterCreateInitialUserGateState();
+  State<GreeterCreateInitialUserGate> createState()
+      => _GreeterCreateInitialUserGateState();
 }
 
-class _GreeterCreateInitialUserGateState extends State<GreeterCreateInitialUserGate> {
+class _GreeterCreateInitialUserGateState
+    extends State<GreeterCreateInitialUserGate> {
   @override
   void initState() {
     super.initState();
 
-    final greeterProvider = context.read<GreeterProvider>();
+    final greeterProvider = context.read<DummyGreeterProvider>();
     final shouldShowDialog = greeterProvider.shouldShowInitialUserCreationDialog;
     if (shouldShowDialog) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showDialog(
           context: context,
+          useRootNavigator: false,
           barrierDismissible: false,
           builder: (_) => _GreeterCreateInitialUserPrompt(
-            onCreated: (username, password) async => await greeterProvider.createInitialUser(
-              context.read<DebugUiProvider>(),
-              context.read<AccountManagerService>(),
-              username,
-              password,
-            ),
+            onCreated: (username, password) async =>
+              await greeterProvider.createInitialUser(
+                context.read<DebugUiProvider>(),
+                context.read<AccountManagerService>(),
+                username,
+                password,
+              ),
           ),
         );
       });
@@ -51,10 +73,12 @@ class _GreeterCreateInitialUserPrompt extends StatefulWidget {
   const _GreeterCreateInitialUserPrompt({this.onCreated});
 
   @override
-  State<_GreeterCreateInitialUserPrompt> createState() => _GreeterCreateInitialUserPromptState();
+  State<_GreeterCreateInitialUserPrompt> createState()
+      => _GreeterCreateInitialUserPromptState();
 }
 
-class _GreeterCreateInitialUserPromptState extends State<_GreeterCreateInitialUserPrompt> {
+class _GreeterCreateInitialUserPromptState
+    extends State<_GreeterCreateInitialUserPrompt> {
   final FormController _controller = FormController();
   bool _isCreating = false;
 
@@ -66,7 +90,7 @@ class _GreeterCreateInitialUserPromptState extends State<_GreeterCreateInitialUs
         content: Text(message),
         actions: [
           PrimaryButton(
-            onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+            onPressed: () => Navigator.pop(context),
             child: const Text('OK'),
           ),
         ],
@@ -111,16 +135,23 @@ class _GreeterCreateInitialUserPromptState extends State<_GreeterCreateInitialUs
       ),
       actions: [
         PrimaryButton(
-          onPressed: !_isCreating && widget.onCreated != null && _controller.errors.isEmpty ? () async {
+          onPressed: !_isCreating
+              && widget.onCreated != null
+              && _controller.errors.isEmpty
+          ? () async {
             setState(() => _isCreating = true);
             try {
-              await widget.onCreated!(_controller.values[FormKey(#name)] as String, _controller.values[FormKey(#password)] as String);
+              await widget.onCreated!(
+                _controller.values[FormKey(#name)] as String,
+                _controller.values[FormKey(#password)] as String,
+              );
               if (!context.mounted) return;
               Navigator.pop(context);
             } catch (e) {
               if (!context.mounted) return;
               showDialog(
                 context: context,
+                useRootNavigator: false,
                 builder: (_) => errorDialog(e.toString()),
               );
             } finally {

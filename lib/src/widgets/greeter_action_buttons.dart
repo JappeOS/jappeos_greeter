@@ -1,3 +1,19 @@
+//  jappeos_greeter, The login UI for JappeOS.
+//  Copyright (C) 2026  The JappeOS team.
+//
+//  This program is free software: you can redistribute it and/or modify
+//  it under the terms of the GNU Affero General Public License as
+//  published by the Free Software Foundation, either version 3 of the
+//  License, or (at your option) any later version.
+//
+//  This program is distributed in the hope that it will be useful,
+//  but WITHOUT ANY WARRANTY; without even the implied warranty of
+//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//  GNU Affero General Public License for more details.
+//
+//  You should have received a copy of the GNU Affero General Public License
+//  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import 'package:jappeos_services/jappeos_services.dart';
 import 'package:provider/provider.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
@@ -7,7 +23,12 @@ class GreeterActionButtons extends StatefulWidget {
   final void Function()? onPopoverClosed;
   final Widget child;
 
-  const GreeterActionButtons({super.key, required this.child, this.onPopoverOpened, this.onPopoverClosed});
+  const GreeterActionButtons({
+    super.key,
+    required this.child,
+    this.onPopoverOpened,
+    this.onPopoverClosed,
+  });
 
   @override
   State<GreeterActionButtons> createState() => _GreeterActionButtonsState();
@@ -18,8 +39,11 @@ class _GreeterActionButtonsState extends State<GreeterActionButtons> {
   int _openPopoversPrev = 0;
 
   void _openPopover(bool open) {
-    if (open) _openPopovers++;
-    else _openPopovers--;
+    if (open) {
+      _openPopovers++;
+    } else {
+      _openPopovers--;
+    }
 
     if (_openPopovers > 0 && _openPopoversPrev == 0) {
       widget.onPopoverOpened?.call();
@@ -89,7 +113,13 @@ class _GreeterVolumeButton extends StatelessWidget {
   final void Function()? onPopoverOpened;
   final void Function()? onPopoverClosed;
 
-  const _GreeterVolumeButton({super.key, required this.value, this.onChanged, this.onPopoverOpened, this.onPopoverClosed});
+  const _GreeterVolumeButton({
+    super.key,
+    required this.value,
+    this.onChanged,
+    this.onPopoverOpened,
+    this.onPopoverClosed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -100,6 +130,7 @@ class _GreeterVolumeButton extends StatelessWidget {
         onPopoverOpened?.call();
         showPopover(
           context: context,
+          rootOverlay: false,
           alignment: Alignment.bottomCenter,
           offset: Offset(0, -4 * scaling),
           builder: (context) {
@@ -135,30 +166,38 @@ class _GreeterPowerButton extends StatelessWidget {
   final void Function()? onPopoverOpened;
   final void Function()? onPopoverClosed;
 
-  const _GreeterPowerButton({super.key, this.onSuspend, this.onRestart, this.onPowerOff, this.onPopoverOpened, this.onPopoverClosed});
+  const _GreeterPowerButton({
+    super.key,
+    this.onSuspend,
+    this.onRestart,
+    this.onPowerOff,
+    this.onPopoverOpened,
+    this.onPopoverClosed,
+  });
 
   @override
   Widget build(BuildContext context) {
     return IconButton.secondary(
-      icon: Icon(Icons.power_settings_new),
+      icon: const Icon(Icons.power_settings_new),
       onPressed: () {
         onPopoverOpened?.call();
         showDropdown(
           context: context,
+          rootOverlay: false,
           builder: (context) {
             return DropdownMenu(
               children: [
                 MenuButton(
                   onPressed: (_) => onSuspend?.call(),
-                  child: Text('Suspend'),
+                  child: const Text('Suspend'),
                 ),
                 MenuButton(
                   onPressed: (_) => onRestart?.call(),
-                  child: Text('Restart'),
+                  child: const Text('Restart'),
                 ),
                 MenuButton(
                   onPressed: (_) => onPowerOff?.call(),
-                  child: Text('Power Off'),
+                  child: const Text('Power Off'),
                 ),
               ],
             );

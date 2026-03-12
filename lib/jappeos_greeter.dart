@@ -14,10 +14,6 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import 'package:shadcn_flutter/shadcn_flutter.dart';
+library;
 
-import 'src/widgets/app.dart';
-
-void main() {
-  runApp(const App());
-}
+export 'src/widgets/greeter.dart';
