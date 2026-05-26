@@ -15,12 +15,12 @@
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:jappeos_desktop_base/jappeos_desktop_base.dart';
-import 'package:jappeos_greeter/src/provider/debug_ui_provider.dart';
-import 'package:jappeos_greeter/src/provider/greeter_provider.dart';
 import 'package:jdwm/jdwm.dart';
 import 'package:provider/provider.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
+import '../provider/debug_ui_provider.dart';
+import '../provider/greeter_provider.dart';
 import 'debug_ui_gate.dart';
 import 'greeter.dart';
 
@@ -34,12 +34,6 @@ class App extends StatefulWidget {
 class _AppState extends State<App> {
   final GlobalKey<WindowManagerState> _wmControllerKey
       = GlobalKey<WindowManagerState>();
-
-  /*final List<MonitorConfig> _monitors = [
-    const MonitorConfig(id: "a", bounds: Rect.fromLTWH(0,    0, 1920 / 2, 1080 / 2)),
-    const MonitorConfig(id: "b", bounds: Rect.fromLTWH(1920 / 2, 0, 1920 / 2, 1080 / 2)),
-    //const MonitorConfig(id: "c", bounds: Rect.fromLTWH(0,   540, 960, 540)),
-  ];*/
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +65,8 @@ class _AppState extends State<App> {
                     : const PopoverOverlayHandler()),
             child: Navigator(
               onGenerateRoute: (settings) => PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) => DebugUiGate(child: Greeter())
+                pageBuilder: (context, animation, secondaryAnimation)
+                    => DebugUiGate(child: Greeter())
               ),
             ),
           );
