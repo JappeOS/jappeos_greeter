@@ -59,6 +59,8 @@ class _GreeterActionButtonsState extends State<GreeterActionButtons> {
   @override
   Widget build(BuildContext context) {
     final powerManager = context.read<PowerManagerService>();
+    final audio = context.read<AudioService>();
+    final audioDevice = audio.activeOutputDevice;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisAlignment: MainAxisAlignment.start,
@@ -82,10 +84,13 @@ class _GreeterActionButtonsState extends State<GreeterActionButtons> {
                   child: Text("Audio"),
                 ),
                 child: _GreeterVolumeButton(
-                  value: 0.5,
+                  value: audioDevice?.volume ?? 0,
+                  onChanged: (v) => audioDevice != null
+                      ? audio.setDeviceVolume(audioDevice, v)
+                      : null,
                   onPopoverOpened: () => _openPopover(true),
                   onPopoverClosed: () => _openPopover(false),
-                ), // TODO: Implement audio
+                ),
               ),
               Tooltip(
                 tooltip: (_) => const TooltipContainer(
@@ -114,7 +119,6 @@ class _GreeterVolumeButton extends StatelessWidget {
   final void Function()? onPopoverClosed;
 
   const _GreeterVolumeButton({
-    super.key,
     required this.value,
     this.onChanged,
     this.onPopoverOpened,
@@ -126,7 +130,7 @@ class _GreeterVolumeButton extends StatelessWidget {
     final scaling = Theme.of(context).scaling;
     return IconButton.secondary(
       icon: Icon(Icons.volume_up),
-      onPressed: () {
+      onPressed: onChanged == null ? null : () {
         onPopoverOpened?.call();
         showPopover(
           context: context,
@@ -142,10 +146,16 @@ class _GreeterVolumeButton extends StatelessWidget {
                   spacing: 2 * scaling,
                   children: [
                     IconButton.ghost(icon: Icon(Icons.volume_up)),
-                    SizedBox(width: 250, child: Slider(
-                      value: SliderValue.single(value),
-                      onChanged: (v) => onChanged != null ? onChanged!(v.value) : null,
-                    ),),
+                    SizedBox(
+                      width: 250,
+                      child: Slider(
+                        enabled: onChanged != null,
+                        value: SliderValue.single(value),
+                        onChanged: (v) => onChanged != null
+                            ? onChanged!(v.value)
+                            : null,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -167,7 +177,6 @@ class _GreeterPowerButton extends StatelessWidget {
   final void Function()? onPopoverClosed;
 
   const _GreeterPowerButton({
-    super.key,
     this.onSuspend,
     this.onRestart,
     this.onPowerOff,
