@@ -16,12 +16,12 @@
 
 // ignore_for_file: control_flow_in_finally
 
-import 'package:jappeos_greeter/src/provider/greeter_provider.dart';
 import 'package:jappeos_services/jappeos_services.dart';
 import 'package:provider/provider.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import '../provider/debug_ui_provider.dart';
+import '../provider/greeter_provider.dart';
 
 class GreeterCreateInitialUserGate extends StatefulWidget {
   final Widget child;
