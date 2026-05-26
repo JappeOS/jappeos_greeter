@@ -14,19 +14,22 @@
 //  You should have received a copy of the GNU Affero General Public License
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+// ignore_for_file: control_flow_in_finally
+
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:jappeos_greeter/src/provider/greeter_provider.dart';
-import 'package:jappeos_greeter/src/widgets/create_initial_user_prompt.dart';
 import 'package:jappeos_services/jappeos_services.dart';
 import 'package:provider/provider.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:widget_and_text_animator/widget_and_text_animator.dart';
 
+import '../provider/greeter_provider.dart';
+import 'create_initial_user_prompt.dart';
 import 'greeter_action_buttons.dart';
 
 class Greeter extends StatefulWidget {
@@ -48,6 +51,7 @@ class _GreeterState extends State<Greeter> {
 
   GreeterPage _currentPage = GreeterPage.main;
   bool _shouldAnimatePageTransition = false;
+  final _focusNode = FocusNode();
 
   final _timeNotifier = ValueNotifier<String>('');
   final _dateNotifier = ValueNotifier<String>('');
@@ -65,6 +69,8 @@ class _GreeterState extends State<Greeter> {
     _initializationFuture = _initialize();
     _startClockTimer();
     _loadRandomWallpaper();
+    //ServicesBinding.instance.keyboard.addHandler(_onAnyKey);
+    _focusNode.requestFocus();
   }
 
   Future<void> _initialize() async {
@@ -152,31 +158,13 @@ class _GreeterState extends State<Greeter> {
     } catch (e) {
       if (!mounted) return;
 
-      setState(() => _loginError = e.toString());
-      await _showLoginErrorDialog(e.toString());
+      setState(() => _loginError = "Incorrect password. Please try again.");
     } finally {
       if (!mounted) return;
 
       setState(() => _isLoggingIn = false);
       _startInactivityTimer();
     }
-  }
-
-  Future<void> _showLoginErrorDialog(String error) async {
-    return showDialog(
-      context: context,
-      useRootNavigator: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Login Error'),
-        content: Text(error),
-        actions: [
-          PrimaryButton(
-            onPressed: () => Navigator.of(context, rootNavigator: false).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _navigateToPage(GreeterPage page) {
@@ -195,8 +183,28 @@ class _GreeterState extends State<Greeter> {
     _navigateToPage(GreeterPage.user);
   }
 
+  /*bool _onAnyKey(KeyEvent _) {
+    return _onUnlockMainPage();
+  }*/
+
+  bool _onUnlockMainPage() {
+    if (_currentPage == GreeterPage.main) {
+      final greeterProvider = context.read<GreeterProvider>();
+      if (greeterProvider.usersList.length == 1) {
+        final entry = greeterProvider.usersList.entries.first;
+        _selectUser(entry.key, entry.value);
+      } else {
+        _navigateToPage(GreeterPage.userList);
+      }
+      return true;
+    }
+    return false;
+  }
+
   @override
   void dispose() {
+    _focusNode.dispose();
+    //ServicesBinding.instance.keyboard.removeHandler(_onAnyKey);
     _clockTimer?.cancel();
     _cancelInactivityTimer();
     _timeNotifier.dispose();
@@ -221,20 +229,20 @@ class _GreeterState extends State<Greeter> {
   }
 
   Widget _buildGreeterContent() {
-    return TapRegion(
-      behavior: HitTestBehavior.opaque,
-      onTapInside: (_) {
-        final greeterProvider = context.read<GreeterProvider>();
-        if (_currentPage == GreeterPage.main) {
-          if (greeterProvider.usersList.length == 1) {
-            final entry = greeterProvider.usersList.entries.first;
-            _selectUser(entry.key, entry.value);
-          } else {
-            _navigateToPage(GreeterPage.userList);
-          }
+    return Focus(
+      focusNode: _focusNode,
+      //autofocus: true,
+      onKeyEvent: (node, event) {
+        if (_onUnlockMainPage()) {
+          return KeyEventResult.handled;
         }
+        return KeyEventResult.ignored;
       },
-      child: _buildBackgroundWithContent(),
+      child: TapRegion(
+        behavior: HitTestBehavior.opaque,
+        onTapInside: (_) => _onUnlockMainPage(),
+        child: _buildBackgroundWithContent(),
+      ),
     );
   }
 
@@ -307,6 +315,7 @@ class _GreeterState extends State<Greeter> {
       GreeterPage.user => _UserLoginPage(
         displayName: _selectedDisplayName,
         isLoggingIn: _isLoggingIn,
+        loginError: _loginError,
         onPasswordChanged: (value) {
           _passwordInput = value;
           _startInactivityTimer();
@@ -450,6 +459,7 @@ class _UsersListPage extends StatelessWidget {
 class _UserLoginPage extends StatefulWidget {
   final String displayName;
   final bool isLoggingIn;
+  final String? loginError;
   final ValueChanged<String> onPasswordChanged;
   final ValueChanged<String> onPasswordSubmitted;
   final VoidCallback onPopoverOpened;
@@ -458,6 +468,7 @@ class _UserLoginPage extends StatefulWidget {
   const _UserLoginPage({
     required this.displayName,
     required this.isLoggingIn,
+    this.loginError,
     required this.onPasswordChanged,
     required this.onPasswordSubmitted,
     required this.onPopoverOpened,
@@ -470,22 +481,26 @@ class _UserLoginPage extends StatefulWidget {
 
 class _UserLoginPageState extends State<_UserLoginPage> {
   late TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController();
+    _focusNode.requestFocus();
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final scaling = Theme.of(context).scaling;
+    final theme = Theme.of(context);
+    final scaling = theme.scaling;
 
     return GreeterActionButtons(
       key: const ValueKey('user-page'),
@@ -499,12 +514,13 @@ class _UserLoginPageState extends State<_UserLoginPage> {
             Icons.account_circle_rounded,
             size: 100,
           ),
-          SizedBox(height: 4 * scaling),
+          Gap(8 * scaling),
           Text(widget.displayName).h3(),
-          SizedBox(height: 8 * scaling),
+          Gap(16 * scaling),
           SizedBox(
             width: 250,
             child: TextField(
+              focusNode: _focusNode,
               controller: _controller,
               features: !widget.isLoggingIn ? [
                 InputFeature.passwordToggle(
@@ -528,16 +544,21 @@ class _UserLoginPageState extends State<_UserLoginPage> {
               ],
               hintText: "Password",
               placeholder: const Text("Password"),
-              textAlign: TextAlign.center,
+              textAlign: TextAlign.left,
               enabled: !widget.isLoggingIn,
               obscureText: true,
               enableSuggestions: false,
               autocorrect: false,
-              autofocus: true,
+              //autofocus: true,
               filled: true,
               onChanged: widget.onPasswordChanged,
               onSubmitted: widget.onPasswordSubmitted,
             ),
+          ),
+          Gap(6 * scaling),
+          Text(
+            widget.loginError ?? "",
+            style: theme.typography.small.copyWith(color: Colors.red),
           ),
         ],
       ),
