@@ -15,9 +15,10 @@
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import 'package:crypt/crypt.dart';
-import 'package:jappeos_greeter/src/provider/debug_ui_provider.dart';
 import 'package:jappeos_services/jappeos_services.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
+
+import 'debug_ui_provider.dart';
 
 class GreeterProvider extends ChangeNotifier {
   final Map<String, String> _usersMap = {};
