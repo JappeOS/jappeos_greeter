@@ -322,7 +322,7 @@ packages:
     description:
       path: "."
       ref: main
-      resolved-ref: "808ae11d6f110c4b202ecf7461fdda4ec9eca746"
+      resolved-ref: "223c187bd109a50ea69e736f1db46f8f5a10ede3"
       url: "https://github.com/JappeOS/jappeos_desktop_base.git"
     source: git
     version: "1.0.0+1"
@@ -331,7 +331,7 @@ packages:
     description:
       path: "."
       ref: dev
-      resolved-ref: "32c255211c70b2ca3167e470c80b85bab27c13a9"
+      resolved-ref: d5488d776ad55d0915007127931c06e048cdf064
       url: "https://github.com/JappeOS/jappeos_services.git"
     source: git
     version: "1.0.0+1"
@@ -612,7 +612,7 @@ packages:
     description:
       path: "."
       ref: master
-      resolved-ref: "84176b9bf20ccf24f46e8bbc13ad0a6c101f9ee0"
+      resolved-ref: "98b313d310bdf8ad6596afc804f0519e53db12b4"
       url: "https://github.com/JappeOS/shadcn_flutter.git"
     source: git
     version: "0.0.48"
