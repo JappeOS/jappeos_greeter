@@ -75,7 +75,7 @@ class GreeterProvider extends ChangeNotifier {
     String password,
   ) async {
     if (!_isInitialized) {
-      throw StateError("GreeterProvider must be initialized before creating an initial user.");
+      throw StateError("GreeterProvider must be initialized before trying to log in.");
     }
 
     if (_isLoggingIn) {
