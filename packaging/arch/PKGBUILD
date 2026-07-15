@@ -1,0 +1,215 @@
+# Maintainer: JappeOS
+
+pkgname=jappeos_greeter
+pkgver=1.0.10
+_tag=dev-v1.0.10
+_jdwm_branch=main
+_wlroots_tag=0.19.0
+pkgrel=1
+pkgdesc='JappeOS greeter UI built with Flutter and JDWM'
+arch=('x86_64')
+url="https://github.com/JappeOS/$pkgname"
+license=('GPL-3.0-or-later')
+depends=(
+  'fontconfig'
+  'libc++'
+  'libc++abi'
+  'libdisplay-info'
+  'libdrm'
+  'libepoxy'
+  'libglvnd'
+  'libinput'
+  'libliftoff'
+  'libunwind'
+  'libxkbcommon'
+  'lcms2'
+  'mesa'
+  'pam'
+  'pixman'
+  'seatd'
+  'systemd-libs'
+  'wayland'
+  'wlroots0.19'
+  'xcb-util-renderutil'
+  'xcb-util-wm'
+  'xorg-xwayland'
+)
+makedepends=(
+  'clang'
+  'curl'
+  'git'
+  'libc++'
+  'libc++abi'
+  'make'
+  'pkgconf'
+  'unzip'
+  'wayland-protocols'
+  'wlroots0.19'
+)
+provides=('jappeos-greeter')
+conflicts=('jappeos-greeter')
+options=('strip' '!debug')
+source=(
+  "$pkgname::git+$url.git#tag=$_tag"
+  "jdwm::git+https://github.com/JappeOS/jdwm.git#branch=$_jdwm_branch"
+  "wlroots::git+https://gitlab.freedesktop.org/wlroots/wlroots.git#tag=$_wlroots_tag"
+)
+sha256sums=('SKIP' 'SKIP' 'SKIP')
+
+_appname='jappeos_greeter'
+_pkgroot='usr/lib/jappeos_greeter'
+_srcroot="$pkgname"
+
+_repo_root() {
+  if [[ -f "${srcdir}/${_srcroot}/run_build.sh" ]]; then
+    printf '%s\n' "${srcdir}/${_srcroot}"
+  elif [[ -f "${startdir}/run_build.sh" ]]; then
+    printf '%s\n' "${startdir}"
+  elif [[ -f "${startdir}/../../run_build.sh" ]]; then
+    cd "${startdir}/../.." && pwd
+  else
+    echo "Could not locate repository root from ${startdir}" >&2
+    return 1
+  fi
+}
+
+_generate_wlroots_protocol_headers() {
+  rm -rf vendor/wlroots/build
+  mkdir -p vendor/wlroots/build/protocol
+
+  local scanner protocol_dir
+  scanner="$(pkg-config --variable=wayland_scanner wayland-scanner)"
+  protocol_dir="$(pkg-config --variable=pkgdatadir wayland-protocols)"
+
+  local -a protocols=(
+    "linux-dmabuf-v1:${protocol_dir}/stable/linux-dmabuf/linux-dmabuf-v1.xml"
+    "presentation-time:${protocol_dir}/stable/presentation-time/presentation-time.xml"
+    "tablet-v2:${protocol_dir}/stable/tablet/tablet-v2.xml"
+    "viewporter:${protocol_dir}/stable/viewporter/viewporter.xml"
+    "xdg-shell:${protocol_dir}/stable/xdg-shell/xdg-shell.xml"
+    "alpha-modifier-v1:${protocol_dir}/staging/alpha-modifier/alpha-modifier-v1.xml"
+    "color-management-v1:${protocol_dir}/staging/color-management/color-management-v1.xml"
+    "content-type-v1:${protocol_dir}/staging/content-type/content-type-v1.xml"
+    "cursor-shape-v1:${protocol_dir}/staging/cursor-shape/cursor-shape-v1.xml"
+    "drm-lease-v1:${protocol_dir}/staging/drm-lease/drm-lease-v1.xml"
+    "ext-foreign-toplevel-list-v1:${protocol_dir}/staging/ext-foreign-toplevel-list/ext-foreign-toplevel-list-v1.xml"
+    "ext-idle-notify-v1:${protocol_dir}/staging/ext-idle-notify/ext-idle-notify-v1.xml"
+    "ext-image-capture-source-v1:${protocol_dir}/staging/ext-image-capture-source/ext-image-capture-source-v1.xml"
+    "ext-image-copy-capture-v1:${protocol_dir}/staging/ext-image-copy-capture/ext-image-copy-capture-v1.xml"
+    "ext-session-lock-v1:${protocol_dir}/staging/ext-session-lock/ext-session-lock-v1.xml"
+    "ext-data-control-v1:${protocol_dir}/staging/ext-data-control/ext-data-control-v1.xml"
+    "fractional-scale-v1:${protocol_dir}/staging/fractional-scale/fractional-scale-v1.xml"
+    "linux-drm-syncobj-v1:${protocol_dir}/staging/linux-drm-syncobj/linux-drm-syncobj-v1.xml"
+    "security-context-v1:${protocol_dir}/staging/security-context/security-context-v1.xml"
+    "single-pixel-buffer-v1:${protocol_dir}/staging/single-pixel-buffer/single-pixel-buffer-v1.xml"
+    "xdg-activation-v1:${protocol_dir}/staging/xdg-activation/xdg-activation-v1.xml"
+    "xdg-dialog-v1:${protocol_dir}/staging/xdg-dialog/xdg-dialog-v1.xml"
+    "xdg-system-bell-v1:${protocol_dir}/staging/xdg-system-bell/xdg-system-bell-v1.xml"
+    "xdg-toplevel-icon-v1:${protocol_dir}/staging/xdg-toplevel-icon/xdg-toplevel-icon-v1.xml"
+    "xwayland-shell-v1:${protocol_dir}/staging/xwayland-shell/xwayland-shell-v1.xml"
+    "tearing-control-v1:${protocol_dir}/staging/tearing-control/tearing-control-v1.xml"
+    "ext-transient-seat-v1:${protocol_dir}/staging/ext-transient-seat/ext-transient-seat-v1.xml"
+    "idle-inhibit-unstable-v1:${protocol_dir}/unstable/idle-inhibit/idle-inhibit-unstable-v1.xml"
+    "keyboard-shortcuts-inhibit-unstable-v1:${protocol_dir}/unstable/keyboard-shortcuts-inhibit/keyboard-shortcuts-inhibit-unstable-v1.xml"
+    "pointer-constraints-unstable-v1:${protocol_dir}/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml"
+    "pointer-gestures-unstable-v1:${protocol_dir}/unstable/pointer-gestures/pointer-gestures-unstable-v1.xml"
+    "primary-selection-unstable-v1:${protocol_dir}/unstable/primary-selection/primary-selection-unstable-v1.xml"
+    "relative-pointer-unstable-v1:${protocol_dir}/unstable/relative-pointer/relative-pointer-unstable-v1.xml"
+    "text-input-unstable-v3:${protocol_dir}/unstable/text-input/text-input-unstable-v3.xml"
+    "xdg-decoration-unstable-v1:${protocol_dir}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml"
+    "xdg-foreign-unstable-v1:${protocol_dir}/unstable/xdg-foreign/xdg-foreign-unstable-v1.xml"
+    "xdg-foreign-unstable-v2:${protocol_dir}/unstable/xdg-foreign/xdg-foreign-unstable-v2.xml"
+    "xdg-output-unstable-v1:${protocol_dir}/unstable/xdg-output/xdg-output-unstable-v1.xml"
+    "drm:vendor/wlroots/protocol/drm.xml"
+    "input-method-unstable-v2:vendor/wlroots/protocol/input-method-unstable-v2.xml"
+    "server-decoration:vendor/wlroots/protocol/server-decoration.xml"
+    "virtual-keyboard-unstable-v1:vendor/wlroots/protocol/virtual-keyboard-unstable-v1.xml"
+    "wlr-data-control-unstable-v1:vendor/wlroots/protocol/wlr-data-control-unstable-v1.xml"
+    "wlr-export-dmabuf-unstable-v1:vendor/wlroots/protocol/wlr-export-dmabuf-unstable-v1.xml"
+    "wlr-foreign-toplevel-management-unstable-v1:vendor/wlroots/protocol/wlr-foreign-toplevel-management-unstable-v1.xml"
+    "wlr-gamma-control-unstable-v1:vendor/wlroots/protocol/wlr-gamma-control-unstable-v1.xml"
+    "wlr-layer-shell-unstable-v1:vendor/wlroots/protocol/wlr-layer-shell-unstable-v1.xml"
+    "wlr-output-management-unstable-v1:vendor/wlroots/protocol/wlr-output-management-unstable-v1.xml"
+    "wlr-output-power-management-unstable-v1:vendor/wlroots/protocol/wlr-output-power-management-unstable-v1.xml"
+    "wlr-screencopy-unstable-v1:vendor/wlroots/protocol/wlr-screencopy-unstable-v1.xml"
+    "wlr-virtual-pointer-unstable-v1:vendor/wlroots/protocol/wlr-virtual-pointer-unstable-v1.xml"
+  )
+
+  local entry name xml
+  for entry in "${protocols[@]}"; do
+    name="${entry%%:*}"
+    xml="${entry#*:}"
+    if [[ ! -f "${xml}" ]]; then
+      echo "Missing Wayland protocol XML: ${xml}"
+      return 1
+    fi
+    "${scanner}" server-header "${xml}" "vendor/wlroots/build/protocol/${name}-protocol.h"
+  done
+}
+
+prepare() {
+  cd "$(_repo_root)"
+
+  if [[ ! -d "${srcdir}/jdwm" || ! -d "${srcdir}/wlroots" ]]; then
+    echo "Using existing vendor sources; makepkg source clones were not found."
+    _generate_wlroots_protocol_headers
+    return 0
+  fi
+
+  rm -rf vendor/jdwm vendor/wlroots
+  mkdir -p vendor
+  cp -a "${srcdir}/jdwm" vendor/jdwm
+  cp -a "${srcdir}/wlroots" vendor/wlroots
+
+  _generate_wlroots_protocol_headers
+}
+
+build() {
+  cd "$(_repo_root)"
+  if [[ -z "${FLUTTER_BIN:-}" && -x /opt/flutter/bin/flutter ]]; then
+    export FLUTTER_BIN=/opt/flutter/bin/flutter
+  fi
+  bash ./run_build.sh arch-native release
+}
+
+package() {
+  cd "$(_repo_root)"
+
+  local bundle="build/jappeos/${CARCH}/release/bundle"
+  if [[ ! -x "${bundle}/${_appname}" ]]; then
+    echo "Missing release bundle. Expected ${bundle}/${_appname}"
+    return 1
+  fi
+
+  install -d "${pkgdir}/${_pkgroot}"
+  cp -a "${bundle}/." "${pkgdir}/${_pkgroot}/"
+
+  # Native Arch packages must use system graphics/session libraries.
+  rm -f \
+    "${pkgdir}/${_pkgroot}/lib/libX11-xcb.so.1" \
+    "${pkgdir}/${_pkgroot}/lib/libdisplay-info.so.2" \
+    "${pkgdir}/${_pkgroot}/lib/libdrm.so.2" \
+    "${pkgdir}/${_pkgroot}/lib/libliftoff.so.0" \
+    "${pkgdir}/${_pkgroot}/lib/libpixman-1.so.0" \
+    "${pkgdir}/${_pkgroot}/lib/libseat.so.1" \
+    "${pkgdir}/${_pkgroot}/lib/libwayland-client.so.0" \
+    "${pkgdir}/${_pkgroot}/lib/libwayland-server.so.0" \
+    "${pkgdir}/${_pkgroot}/lib/libwlroots-0.19.so" \
+    "${pkgdir}/${_pkgroot}/lib/libxcb-composite.so.0" \
+    "${pkgdir}/${_pkgroot}/lib/libxcb-ewmh.so.2" \
+    "${pkgdir}/${_pkgroot}/lib/libxcb-icccm.so.4" \
+    "${pkgdir}/${_pkgroot}/lib/libxcb-render-util.so.0" \
+    "${pkgdir}/${_pkgroot}/lib/libxcb-render.so.0" \
+    "${pkgdir}/${_pkgroot}/lib/libxcb-res.so.0" \
+    "${pkgdir}/${_pkgroot}/lib/libxcb-xfixes.so.0" \
+    "${pkgdir}/${_pkgroot}/lib/libxcb.so.1"
+  rm -f "${pkgdir}/${_pkgroot}/bin/Xwayland"
+
+  # Sony's engine/runtime expects libunwind.so.1, while Arch ships libunwind.so.8.
+  if [[ ! -e "${pkgdir}/${_pkgroot}/lib/libunwind.so.1" ]]; then
+    ln -s /usr/lib/libunwind.so.8 "${pkgdir}/${_pkgroot}/lib/libunwind.so.1"
+  fi
+
+  install -Dm755 "packaging/arch/jappeos_greeter" "${pkgdir}/usr/bin/${_appname}"
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+}

@@ -35,6 +35,7 @@ BACKEND_RELEASE_LIB := $(BACKEND_BUILD_DIR)/release/libzenith_backend.a
 BACKEND_MAKE_ARGS = WLR_ROOT=$(abspath $(WLR_ROOT)) WLR_SRC_ROOT=$(abspath $(WLR_SRC_ROOT)) \
 	WLR_INC_SUBDIR=$(WLR_INC_SUBDIR) BUILD_VERSION=$(BUILD_VERSION) \
 	BUILD_GIT_COMMIT=$(BUILD_GIT_COMMIT) BUILD_TIMESTAMP=$(BUILD_TIMESTAMP) \
+	WERROR_FLAGS="$(WERROR_FLAGS)" \
 	BUILD_DIR_BASE=$(abspath $(BACKEND_BUILD_DIR))
 
 SRCS := $(shell find $(SRC_DIRS) -name '*.cpp' -or -name '*.cc' -or -name '*.c')
@@ -51,7 +52,8 @@ INC_DIRS := $(shell find $(SRC_DIRS) -type d)
 INC_FLAGS := $(addprefix -I,$(INC_DIRS)) -I$(BACKEND_DIR)/include
 
 ASAN := -g -fno-omit-frame-pointer -fsanitize=address
-WARNINGS := -Wall -Wextra -Werror \
+WERROR_FLAGS ?= -Werror
+WARNINGS := -Wall -Wextra $(WERROR_FLAGS) \
 			-Wno-unused-parameter -Wno-unused-variable -Wno-invalid-offsetof -Wno-unknown-pragmas \
 			-Wno-deprecated-declarations
 BUILD_VERSION ?= local
@@ -92,7 +94,9 @@ RELEASE_CPPFLAGS := $(COMMON_CPPFLAGS) -O2
 WLR_LDFLAGS :=
 ifdef WLR_ROOT
 WLR_LDFLAGS += -L$(WLR_ROOT)/lib -L$(WLR_ROOT)/lib/x86_64-linux-gnu
+ifneq ($(abspath $(WLR_ROOT)),/usr)
 WLR_LDFLAGS += -Wl,-rpath,$(WLR_ROOT)/lib -Wl,-rpath,$(WLR_ROOT)/lib/x86_64-linux-gnu
+endif
 endif
 
 COMMON_LDFLAGS := $(WLR_LDFLAGS) \
@@ -227,7 +231,7 @@ debug_bundle: flutter_debug $(DEBUG_BUNDLE_DIR)/$(TARGET_EXEC)
 	mkdir -p $(DEBUG_BUNDLE_DIR)/lib/
 	cp $(DEPS_DIR)/libflutter_engine_debug.so $(DEBUG_BUNDLE_DIR)/lib/libflutter_engine.so
 	if [ -d build/linux/$(ARCH)/debug/bundle/data ]; then cp -r build/linux/$(ARCH)/debug/bundle/data $(DEBUG_BUNDLE_DIR); else cp -r build/flutter_assets $(DEBUG_BUNDLE_DIR)/data; fi
-	cp lsan_suppressions.txt $(DEBUG_BUNDLE_DIR)
+#cp lsan_suppressions.txt $(DEBUG_BUNDLE_DIR)
 
 profile_bundle: flutter_profile $(PROFILE_BUNDLE_DIR)/$(TARGET_EXEC)
 	mkdir -p $(PROFILE_BUNDLE_DIR)/lib/
@@ -245,7 +249,7 @@ debug_bundle_no_flutter: $(DEBUG_BUNDLE_DIR)/$(TARGET_EXEC)
 	mkdir -p $(DEBUG_BUNDLE_DIR)/lib/
 	cp $(DEPS_DIR)/libflutter_engine_debug.so $(DEBUG_BUNDLE_DIR)/lib/libflutter_engine.so
 	if [ -d build/linux/$(ARCH)/debug/bundle/data ]; then cp -r build/linux/$(ARCH)/debug/bundle/data $(DEBUG_BUNDLE_DIR); else cp -r build/flutter_assets $(DEBUG_BUNDLE_DIR)/data; fi
-	cp lsan_suppressions.txt $(DEBUG_BUNDLE_DIR)
+#cp lsan_suppressions.txt $(DEBUG_BUNDLE_DIR)
 
 profile_bundle_no_flutter: $(PROFILE_BUNDLE_DIR)/$(TARGET_EXEC)
 	mkdir -p $(PROFILE_BUNDLE_DIR)/lib/
