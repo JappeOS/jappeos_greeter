@@ -124,7 +124,7 @@ class _GreeterState extends State<Greeter> {
     }
 
     final imageFiles = await dir
-        .list()
+        .list(recursive: true)
         .where((entity) => entity is File && _isSupportedImageFormat(entity.path))
         .map((entity) => entity as File)
         .toList();
