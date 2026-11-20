@@ -58,7 +58,6 @@ class _GreeterActionButtonsState extends State<GreeterActionButtons> {
 
   @override
   Widget build(BuildContext context) {
-    final powerManager = context.read<PowerManagerService>();
     final audio = context.read<AudioService>();
     final audioDevice = audio.activeOutputDevice;
     return Column(
@@ -99,9 +98,6 @@ class _GreeterActionButtonsState extends State<GreeterActionButtons> {
                 child: _GreeterPowerButton(
                   onPopoverOpened: () => _openPopover(true),
                   onPopoverClosed: () => _openPopover(false),
-                  onPowerOff: () async => await powerManager.shutdown(),
-                  onRestart: () async => await powerManager.reboot(),
-                  onSuspend: () async => await powerManager.suspend(),
                 ),
               ),
             ],
@@ -169,50 +165,140 @@ class _GreeterVolumeButton extends StatelessWidget {
   }
 }
 
-class _GreeterPowerButton extends StatelessWidget {
-  final void Function()? onSuspend;
-  final void Function()? onRestart;
-  final void Function()? onPowerOff;
+class _GreeterPowerButton extends StatefulWidget {
   final void Function()? onPopoverOpened;
   final void Function()? onPopoverClosed;
 
   const _GreeterPowerButton({
-    this.onSuspend,
-    this.onRestart,
-    this.onPowerOff,
     this.onPopoverOpened,
     this.onPopoverClosed,
   });
+
+  @override
+  State<_GreeterPowerButton> createState() => _GreeterPowerButtonState();
+}
+
+class _GreeterPowerButtonState extends State<_GreeterPowerButton> {
+  Future<PowerActionCapability?> _checkCapability(
+    Future<PowerActionCapability> Function() check,
+  ) async {
+    try {
+      return await check();
+    } catch (error, stack) {
+      debugPrint('Power capability check failed: $error\n$stack');
+      return null;
+    }
+  }
+
+  bool _canOffer(PowerActionCapability? capability) =>
+      capability == PowerActionCapability.allowed ||
+      capability == PowerActionCapability.authenticationRequired;
+
+  MenuButton _powerAction(
+    String label,
+    PowerActionCapability? capability,
+    Future<void> Function(bool interactive) invoke,
+  ) {
+    final interactive =
+        capability == PowerActionCapability.authenticationRequired;
+    return MenuButton(
+      trailing: interactive ? const Icon(Icons.lock_outline) : null,
+      onPressed: (_) async {
+        try {
+          await invoke(interactive);
+        } catch (error, stack) {
+          debugPrint('$label failed: $error\n$stack');
+          if (!mounted) return;
+          showToast(
+            context: context,
+            builder: (context, overlay) => SurfaceCard(
+              child: Basic(
+                title: Text('$label could not be completed'),
+                subtitle: const Text(
+                    'Authorization may be required, or the system may be busy.'),
+              ),
+            ),
+          );
+        }
+      },
+      child: Text(label),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return IconButton.secondary(
       icon: const Icon(Icons.power_settings_new),
       onPressed: () {
-        onPopoverOpened?.call();
+        final powerService = context.read<PowerManagerService>();
+        final sessionService = context.read<SessionManagerService>();
+
+        // Recheck each time the menu opens: session policy and inhibitors change.
+        final capabilities = Future.wait([
+          _checkCapability(powerService.canSuspend),
+          _checkCapability(powerService.canHibernate),
+          _checkCapability(powerService.canReboot),
+          _checkCapability(powerService.canShutdown),
+        ]);
+
+        widget.onPopoverOpened?.call();
         showDropdown(
           context: context,
           rootOverlay: false,
           builder: (context) {
-            return DropdownMenu(
-              children: [
-                MenuButton(
-                  onPressed: (_) => onSuspend?.call(),
-                  child: const Text('Suspend'),
-                ),
-                MenuButton(
-                  onPressed: (_) => onRestart?.call(),
-                  child: const Text('Restart'),
-                ),
-                MenuButton(
-                  onPressed: (_) => onPowerOff?.call(),
-                  child: const Text('Power Off'),
-                ),
-              ],
+            return FutureBuilder<List<PowerActionCapability?>>(
+              future: capabilities,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final results = snapshot.data ??
+                    List<PowerActionCapability?>.filled(4, null);
+                return DropdownMenu(
+                  children: [
+                    if (_canOffer(results[0]))
+                      _powerAction(
+                          'Suspend',
+                          results[0],
+                          (interactive) =>
+                              powerService.suspend(interactive: interactive)),
+                    if (_canOffer(results[1]))
+                      _powerAction(
+                          'Hibernate',
+                          results[1],
+                          (interactive) =>
+                              powerService.hibernate(interactive: interactive)),
+                    if (_canOffer(results[2]))
+                      _powerAction(
+                          'Restart',
+                          results[2],
+                          (interactive) =>
+                              powerService.reboot(interactive: interactive)),
+                    if (_canOffer(results[3]))
+                      _powerAction(
+                          'Power Off',
+                          results[3],
+                          (interactive) =>
+                              powerService.shutdown(interactive: interactive)),
+                    if (results.contains(null))
+                      const MenuLabel(
+                          child:
+                              Text('Some power options could not be checked.'))
+                    else if (!results.any(_canOffer))
+                      const MenuLabel(
+                          child: Text('No power actions available.')),
+                    const MenuDivider(),
+                    MenuButton(
+                      onPressed: (_) => sessionService.stopSession(),
+                      child: const Text('Log Out'),
+                    ),
+                  ],
+                );
+              },
             );
-          },
+          }
         ).future.then((_) {
-          onPopoverClosed?.call();
+          widget.onPopoverClosed?.call();
         });
       },
     );
